@@ -7,17 +7,17 @@ struct print_tree : boost::static_visitor<> {
     std::ostream& o;
     print_tree(std::ostream& o) : o(o) {}
 
-    void operator()(variable const& v) {
+    void operator()(variable const& v) const {
         o << v.name;
     }
 
-    void operator()(lambda const& lam) {
+    void operator()(lambda const& lam) const {
         o << "(\\" << lam.param << ". ";
         boost::apply_visitor(*this, lam.body);
         o << ")";
     }
 
-    void operator()(application const& app) {
+    void operator()(application const& app) const {
         o << "(";
         boost::apply_visitor(*this, app.f);
         o << " ";
@@ -27,8 +27,7 @@ struct print_tree : boost::static_visitor<> {
 };
 
 std::ostream& operator<<(std::ostream& o, tree const& tr) {
-    print_tree pt(o);
-    boost::apply_visitor(pt, tr);
+    boost::apply_visitor(print_tree(o), tr);
     return o;
 }
 
