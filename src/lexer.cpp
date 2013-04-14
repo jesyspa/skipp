@@ -6,9 +6,11 @@
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/mpl/vector.hpp>
 
-namespace msm = boost::msm;
-namespace mpl = boost::mpl;
 namespace {
+    namespace msm = boost::msm;
+    namespace mpl = boost::mpl;
+    using namespace skipp::token;
+
     struct letter { char c; };
     struct whitespace {};
 
@@ -66,8 +68,11 @@ namespace {
     using lexer = msm::back::state_machine<lexer_>;
 }
 
-tokens lex(std::string const& s) {
-    lexer lexer;
+namespace skipp {
+namespace lexer {
+
+token::tokens lex(std::string const& s) {
+    ::lexer lexer;
     lexer.start();
     for (char c : s) {
         if (c == '.')
@@ -87,3 +92,6 @@ tokens lex(std::string const& s) {
     lexer.stop();
     return lexer.result;
 }
+
+} // lexer
+} // skipp

@@ -3,5 +3,11 @@
 #include "token.hpp"
 #include <vector>
 
-using tokens = std::vector<token>;
+namespace skipp {
+namespace lexer {
+
+using token::tokens;
 tokens lex(std::string const&);
+
+} // lexer
+} // skipp

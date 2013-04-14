@@ -2,7 +2,11 @@
 
 #include <string>
 #include <ostream>
+#include <vector>
 #include <boost/variant.hpp>
+
+namespace skipp {
+namespace token {
 
 struct eof {};
 struct lambda {};
@@ -34,7 +38,30 @@ MAKE_OPERATORS(close_paren)
 std::ostream& operator<<(std::ostream&, variable const&);
 bool operator==(variable const&, variable const&);
 
-using token = boost::variant<eof, lambda, dot, open_paren, close_paren,
-      variable>;
+using token = boost::variant<eof, lambda, dot, open_paren,
+                             close_paren, variable>;
+using tokens = std::vector<token>;
 
 bool operator!=(token const& lhs, token const& rhs);
+
+namespace detail {
+    template<typename T>
+    struct is_impl : boost::static_visitor<bool> {
+        bool operator()(T const&) const {
+            return true;
+        }
+
+        template<typename U>
+        bool operator()(U const&) const {
+            return false;
+        }
+    };
+}
+
+template<typename T>
+bool is(token const& tk) {
+    return boost::apply_visitor(detail::is_impl<T>{}, tk);
+}
+
+} // token
+} // skipp
