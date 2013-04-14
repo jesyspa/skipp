@@ -52,9 +52,20 @@ struct print_ski : boost::static_visitor<> {
     }
 };
 
+node_ptr make_application(node_ptr const& f, node_ptr const& x) {
+    return std::make_shared<node>(application{f, x});
+}
 
 std::ostream& operator<<(std::ostream& o, node const& n) {
     boost::apply_visitor(print_ski(o), n);
+    return o;
+}
+
+std::ostream& operator<<(std::ostream& o, node_ptr const& p) {
+    if (!p)
+        o << "{null}";
+    else
+        o << *p;
     return o;
 }
 

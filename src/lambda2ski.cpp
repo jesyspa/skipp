@@ -1,43 +1,93 @@
 #include "lambda2ski.hpp"
 #include "parser.hpp"
+#include <stdexcept>
 
 namespace skipp {
 namespace lambda2ski {
 
-struct compile : boost::static_visitor<ski::node> {
-    ski::node operator()(lambda_ast::variable const&) const;
-    ski::node operator()(lambda_ast::lambda const&) const;
-    ski::node operator()(lambda_ast::application const&) const;
+struct compile : boost::static_visitor<lambda_ast::tree> {
+    lambda_ast::tree operator()(lambda_ast::variable const& var) const {
+        return var;
+    }
+
+    lambda_ast::tree operator()(lambda_ast::application const& app) const {
+        return lambda_ast::application{
+            boost::apply_visitor(*this, app.f),
+            boost::apply_visitor(*this, app.x)
+        };
+    }
+
+    lambda_ast::tree operator()(lambda_ast::lambda const&) const;
 };
 
-struct remove_parameter : boost::static_visitor<ski::node> {
+struct remove_parameter : boost::static_visitor<lambda_ast::tree> {
+    remove_parameter(std::string const& s) : name(s) {}
     std::string name;
 
-    ski::node operator()(lambda_ast::variable const&) const;
-    ski::node operator()(lambda_ast::lambda const&) const;
-    ski::node operator()(lambda_ast::application const&) const;
+    lambda_ast::tree operator()(lambda_ast::variable const& var) const {
+        if (var.name == name)
+            return lambda_ast::variable{"$I"};
+        return lambda_ast::application{
+            lambda_ast::variable{"$K"},
+            lambda_ast::variable{var.name}
+        };
+    }
+
+    lambda_ast::tree operator()(lambda_ast::lambda const& lam) const {
+        auto part = boost::apply_visitor(
+            remove_parameter(lam.param),
+            lam.body
+        );
+        return boost::apply_visitor(*this, part);
+    }
+
+    lambda_ast::tree operator()(lambda_ast::application const& app) const {
+        auto f = boost::apply_visitor(*this, app.f);
+        auto g = boost::apply_visitor(*this, app.x);
+        return lambda_ast::application{
+            lambda_ast::application{
+                lambda_ast::variable{"$S"},
+                f
+            },
+            g
+        };
+    }
 };
 
-ski::node compile::operator()(lambda_ast::variable const& var) const {
-    return ski::value{ski::variable{var.name}};
+lambda_ast::tree
+compile::operator()(lambda_ast::lambda const& lam) const {
+    return boost::apply_visitor(remove_parameter(lam.param), lam.body);
 }
 
-ski::node compile::operator()(lambda_ast::lambda const&) const {
-    return {};
+struct to_ski : boost::static_visitor<ski::node_ptr> {
+    ski::node_ptr operator()(lambda_ast::variable const& var) const {
+        if (var.name == "$S")
+            return make_value(ski::s_comb_0{});
+        if (var.name == "$K")
+            return make_value(ski::k_comb_0{});
+        if (var.name == "$I")
+            return make_value(ski::i_comb_0{});
+        return ski::make_value(ski::variable{var.name});
+    }
+
+    ski::node_ptr operator()(lambda_ast::lambda const&) const {
+        throw std::runtime_error("unreduced lambda");
+    }
+
+    ski::node_ptr operator()(lambda_ast::application const& app) const {
+        return ski::make_application(
+            boost::apply_visitor(*this, app.f),
+            boost::apply_visitor(*this, app.x)
+        );
+    }
+};
+
+ski::node_ptr lambda2ski(lambda_ast::tree const& tree) {
+    auto compiled = boost::apply_visitor(compile{}, tree);
+    return boost::apply_visitor(to_ski{}, compiled);
 }
 
-ski::node compile::operator()(lambda_ast::application const& app) const {
-    return ski::application{
-        to_ptr(boost::apply_visitor(*this, app.f)),
-        to_ptr(boost::apply_visitor(*this, app.x))
-    };
-}
-
-ski::node lambda2ski(lambda_ast::tree const& tree) {
-    return boost::apply_visitor(compile{}, tree);
-}
-
-ski::node string2ski(std::string const& s) {
+ski::node_ptr string2ski(std::string const& s) {
     return lambda2ski(parser::parse(s));
 }
 

@@ -62,7 +62,10 @@ node_ptr make_value(T const& t) {
     return std::make_shared<node>(value{t});
 }
 
+node_ptr make_application(node_ptr const&, node_ptr const&);
+
 std::ostream& operator<<(std::ostream&, node const&);
+std::ostream& operator<<(std::ostream&, node_ptr const&);
 std::ostream& operator<<(std::ostream&, value const&);
 bool operator==(application const&, application const&);
 bool operator==(variable const&, variable const&);
