@@ -1,3 +1,13 @@
+# Build directories
+bin/
+lib/
+.dbgbuild/
+.relbuild/
+
+# Compiled programs
+test
+dbgtest
+
 # Compiled Object files
 *.slo
 *.lo
@@ -11,3 +21,6 @@
 *.lai
 *.la
 *.a
+
+# Scons stuff
+.sconsign.dblite

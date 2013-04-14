@@ -1,0 +1,18 @@
+Import('env')
+Import('prefix')
+
+skipp_sources = Glob("*.cpp")
+
+lib_target = "".join(['#lib/', prefix, 'skipp'])
+bin_target = "".join(['#bin/', prefix, 'skipp'])
+
+env.StaticLibrary(lib_target, skipp_sources)
+env.Program(bin_target, skipp_sources + ["main/simple.cpp"])
+
+exports = {
+    'env': env,
+    'prefix': prefix,
+}
+
+SConscript('test/SConscript', exports=exports)
+
