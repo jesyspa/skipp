@@ -53,6 +53,30 @@ result do_evaluate(ski::variable const& v, arg_vector& args) {
         extract(args);
         return get_app(result).x;
     }
+    if (v.name == "$R") {
+        if (args.size() < 3)
+            return {};
+        auto f = extract(args);
+        auto g = extract(args);
+        auto base = extract(args);
+        auto& app = get_app(base);
+        auto x = app.x;
+        app.f = get_app(f).x;
+        app.x = ski::application{get_app(g).x, x};
+        return base;
+    }
+    if (v.name == "$L") {
+        if (args.size() < 3)
+            return {};
+        auto f = extract(args);
+        auto g = extract(args);
+        auto base = extract(args);
+        auto& app = get_app(base);
+        auto x = app.x;
+        app.f = ski::application{get_app(f).x, x};
+        app.x = get_app(g).x;
+        return base;
+    }
     if (v.name == "$S") {
         if (args.size() < 3)
             return {};
