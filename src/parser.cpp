@@ -3,8 +3,9 @@
 #include <stack>
 #include <stdexcept>
 
-namespace skipp {
-namespace parser {
+namespace {
+using namespace skipp;
+using namespace lambda_ast;
 
 using iter = token::tokens::const_iterator;
 
@@ -65,6 +66,9 @@ tree parse_expr(iter& it) {
         x = lambda_ast::application{x, parse_atom(it)};
     return x;
 }
+}
+
+namespace skipp {
 
 tree parse(token::tokens const& toks) {
     auto it = toks.begin();
@@ -75,8 +79,7 @@ tree parse(token::tokens const& toks) {
 }
 
 tree parse(std::string const& s) {
-    return parse(lexer::lex(s));
+    return parse(lex(s));
 }
 
-}
 }

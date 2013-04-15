@@ -5,22 +5,24 @@
 #include <set>
 #include <iterator>
 
-namespace skipp {
-namespace lambda2ski {
+
+namespace {
+using namespace skipp;
 
 struct used_variables : boost::static_visitor<std::set<std::string>> {
-    std::set<std::string> operator()(lambda_ast::variable const& var) const {
+    using result = std::set<std::string>;
+    result operator()(lambda_ast::variable const& var) const {
         return {var.name};
     }
 
-    std::set<std::string> operator()(lambda_ast::application const& app) const {
+    result operator()(lambda_ast::application const& app) const {
         auto f = boost::apply_visitor(*this, app.f);
         auto x = boost::apply_visitor(*this, app.x);
         std::copy(x.begin(), x.end(), std::inserter(f, f.begin()));
         return f;
     }
 
-    std::set<std::string> operator()(lambda_ast::lambda const& lam) const {
+    result operator()(lambda_ast::lambda const& lam) const {
         auto vars = boost::apply_visitor(*this, lam.body);
         auto it = vars.find(lam.param);
         if (it != vars.end())
@@ -65,17 +67,21 @@ struct remove_parameter : boost::static_visitor<lambda_ast::tree> {
         return boost::apply_visitor(*this, part);
     }
 
-    lambda_ast::tree vars_helper(bool has, lambda_ast::tree const& tree) const {
+    lambda_ast::tree
+    vars_helper(bool has, lambda_ast::tree const& tree) const {
         if (has)
             return boost::apply_visitor(*this, tree);
         return tree;
     }
 
-    lambda_ast::tree operator()(lambda_ast::application const& app) const {
-        auto const vars_f = boost::apply_visitor(used_variables{}, app.f);
-        auto const vars_g = boost::apply_visitor(used_variables{}, app.x);
-        bool const in_f = vars_f.count(name);
-        bool const in_g = vars_g.count(name);
+    bool has_helper(lambda_ast::tree const& tree) const {
+        return boost::apply_visitor(used_variables{}, tree).count(name);
+    }
+
+    lambda_ast::tree
+    operator()(lambda_ast::application const& app) const {
+        bool const in_f = has_helper(app.f);
+        bool const in_g = has_helper(app.x);
         auto const f = vars_helper(in_f, app.f);
         auto const g = vars_helper(in_g, app.x);
         auto const var = lambda_ast::variable{
@@ -116,6 +122,10 @@ struct to_ski : boost::static_visitor<ski::node> {
         };
     }
 };
+}
+
+
+namespace skipp {
 
 ski::node lambda2ski(lambda_ast::tree const& tree) {
     auto compiled = boost::apply_visitor(compile{}, tree);
@@ -123,8 +133,7 @@ ski::node lambda2ski(lambda_ast::tree const& tree) {
 }
 
 ski::node string2ski(std::string const& s) {
-    return lambda2ski(parser::parse(s));
+    return lambda2ski(parse(s));
 }
 
-}
 }

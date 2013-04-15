@@ -69,7 +69,6 @@ namespace {
 }
 
 namespace skipp {
-namespace lexer {
 
 token::tokens lex(std::string const& s) {
     ::lexer lexer;
@@ -93,5 +92,4 @@ token::tokens lex(std::string const& s) {
     return lexer.result;
 }
 
-} // lexer
 } // skipp

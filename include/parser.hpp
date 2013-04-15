@@ -7,12 +7,8 @@
 #include "lambda_ast.hpp"
 
 namespace skipp {
-namespace parser {
 
-using tree = lambda_ast::tree;
-tree parse(token::tokens const&);
+lambda_ast::tree parse(token::tokens const&);
+lambda_ast::tree parse(std::string const&);
 
-tree parse(std::string const&);
-
-}
 }

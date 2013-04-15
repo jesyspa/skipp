@@ -5,10 +5,8 @@
 #include <string>
 
 namespace skipp {
-namespace lambda2ski {
 
 ski::node lambda2ski(lambda_ast::tree const&);
 ski::node string2ski(std::string const&);
 
-}
 }

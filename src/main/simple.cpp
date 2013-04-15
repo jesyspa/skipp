@@ -10,12 +10,12 @@ int main() {
     std::string line;
     while (std::cout << ">>> " && std::getline(std::cin, line)) {
         try {
-            auto lexed = skipp::lexer::lex(line);
-            auto parsed = skipp::parser::parse(lexed);
+            auto lexed = skipp::lex(line);
+            auto parsed = skipp::parse(lexed);
             std::cout << "PARSED: " << parsed << '\n';
-            auto ski = skipp::lambda2ski::lambda2ski(parsed);
+            auto ski = skipp::lambda2ski(parsed);
             std::cout << "SKI: " << ski << '\n';
-            auto result = skipp::evaluate::eval(ski);
+            auto result = skipp::eval(ski);
             std::cout << "RESULT: " << result << '\n';
         }
         catch (std::exception& e) {
