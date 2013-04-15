@@ -14,10 +14,14 @@ struct application;
 struct variable {
     std::string name;
 };
+struct combinator {
+    char c;
+};
 
 namespace detail {
     using node_impl = boost::variant<
         variable,
+        combinator,
         application
     >;
 }
@@ -34,8 +38,9 @@ class node {
 public:
     node() = delete;
     node(detail::node_impl const& n);
-    node(application const& n);
     node(variable const&);
+    node(combinator const&);
+    node(application const&);
     node(node const&) = default;
     node(node&&) = default;
 
@@ -76,8 +81,9 @@ auto node::apply_visitor(T&& sv) const {
 }
 
 std::ostream& operator<<(std::ostream&, node const&);
-bool operator==(application const&, application const&);
 bool operator==(variable const&, variable const&);
+bool operator==(combinator const&, combinator const&);
+bool operator==(application const&, application const&);
 
 } // ski
 } // skipp

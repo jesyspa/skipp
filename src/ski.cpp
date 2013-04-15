@@ -8,6 +8,15 @@ struct print_ski : boost::static_visitor<> {
     print_ski(std::ostream& o) : o(o) {}
     std::ostream& o;
 
+
+    void operator()(variable const& var) const {
+        o << var.name;
+    }
+
+    void operator()(combinator const& comb) const {
+        o << comb.c;
+    }
+
     void operator()(application const& app) const {
         o << '(';
         app.f.apply_visitor(*this);
@@ -15,15 +24,12 @@ struct print_ski : boost::static_visitor<> {
         app.x.apply_visitor(*this);
         o << ')';
     }
-
-    void operator()(variable const& var) const {
-        o << var.name;
-    }
 };
 
 node::node(detail::node_impl const& n) : ptr(to_ptr(n)) {}
-node::node(application const& n) : node(impl(n)) {}
 node::node(variable const& n) : node(impl(n)) {}
+node::node(combinator const& n) : node(impl(n)) {}
+node::node(application const& n) : node(impl(n)) {}
 
 void node::update(node const& n) const {
     *ptr = *n.ptr;
@@ -42,6 +48,11 @@ bool operator==(variable const& lhs,
 bool operator==(application const& lhs,
                 application const& rhs) {
     return lhs.f == rhs.f && lhs.x == rhs.x;
+}
+
+bool operator==(combinator const& lhs,
+                combinator const& rhs) {
+    return lhs.c == rhs.c;
 }
 
 bool operator==(node const& lhs, node const& rhs) {

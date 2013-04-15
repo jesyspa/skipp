@@ -100,6 +100,8 @@ compile::operator()(lambda_ast::lambda const& lam) const {
 
 struct to_ski : boost::static_visitor<ski::node> {
     ski::node operator()(lambda_ast::variable const& var) const {
+        if (var.name[0] == '$')
+            return ski::combinator{var.name.at(1)};
         return ski::variable{var.name};
     }
 
