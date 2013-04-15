@@ -7,15 +7,11 @@ struct print_ski : boost::static_visitor<> {
     print_ski(std::ostream& o) : o(o) {}
     std::ostream& o;
 
-    void operator()(value const& val) const {
-        o << val;
-    }
-
     void operator()(application const& app) const {
         o << '(';
-        boost::apply_visitor(*this, *app.f);
+        app.f.apply_visitor(*this);
         o << ' ';
-        boost::apply_visitor(*this, *app.x);
+        app.x.apply_visitor(*this);
         o << ')';
     }
 
@@ -28,14 +24,17 @@ struct print_ski : boost::static_visitor<> {
     }
 
     void operator()(s_comb_1 const& s) const {
-        o << 'S';
-        boost::apply_visitor(*this, *s.f);
+        o << "S[";
+        s.f.apply_visitor(*this);
+        o << "]";
     }
 
     void operator()(s_comb_2 const& s) const {
-        o << 'S';
-        boost::apply_visitor(*this, *s.f);
-        boost::apply_visitor(*this, *s.g);
+        o << "S[";
+        s.f.apply_visitor(*this);
+        o << ", ";
+        s.g.apply_visitor(*this);
+        o << "]";
     }
 
     void operator()(k_comb_0 const&) const {
@@ -43,8 +42,9 @@ struct print_ski : boost::static_visitor<> {
     }
 
     void operator()(k_comb_1 const& k) const {
-        o << 'K';
-        boost::apply_visitor(*this, *k.x);
+        o << "S[";
+        k.x.apply_visitor(*this);
+        o << "]";
     }
 
     void operator()(i_comb_0 const&) const {
@@ -52,66 +52,61 @@ struct print_ski : boost::static_visitor<> {
     }
 };
 
-node_ptr make_application(node_ptr const& f, node_ptr const& x) {
-    return std::make_shared<node>(application{f, x});
-}
+node::node(detail::node_impl const& n) : ptr(to_ptr(n)) {}
+node::node(application const& n) : node(impl(n)) {}
+node::node(variable const& n) : node(impl(n)) {}
+node::node(s_comb_0 const& n) : node(impl(n)) {}
+node::node(s_comb_1 const& n) : node(impl(n)) {}
+node::node(s_comb_2 const& n) : node(impl(n)) {}
+node::node(k_comb_0 const& n) : node(impl(n)) {}
+node::node(k_comb_1 const& n) : node(impl(n)) {}
+node::node(i_comb_0 const& n) : node(impl(n)) {}
 
 std::ostream& operator<<(std::ostream& o, node const& n) {
-    boost::apply_visitor(print_ski(o), n);
+    n.apply_visitor(print_ski(o));
     return o;
 }
 
-std::ostream& operator<<(std::ostream& o, node_ptr const& p) {
-    if (!p)
-        o << "{null}";
-    else
-        o << *p;
-    return o;
-}
-
-std::ostream& operator<<(std::ostream& o, value const& v) {
-    boost::apply_visitor(print_ski(o), v.impl);
-    return o;
-}
-
-bool operator==(variable const& lhs, variable const& rhs) {
+bool operator==(variable const& lhs,
+                variable const& rhs) {
     return lhs.name == rhs.name;
 }
 
-bool operator==(application const& lhs, application const& rhs) {
-    return *lhs.f == *rhs.f && *lhs.x == *rhs.x;
+bool operator==(application const& lhs,
+                application const& rhs) {
+    return lhs.f == rhs.f && lhs.x == rhs.x;
 }
 
-bool operator==(s_comb_0 const&, s_comb_0 const&) {
+bool operator==(s_comb_0 const&,
+                s_comb_0 const&) {
     return true;
 }
 
-bool operator==(s_comb_1 const& lhs, s_comb_1 const& rhs) {
-    return *lhs.f == *rhs.f;
+bool operator==(s_comb_1 const& lhs,
+                s_comb_1 const& rhs) {
+    return lhs.f == rhs.f;
 }
 
-bool operator==(s_comb_2 const& lhs, s_comb_2 const& rhs) {
-    return *lhs.f == *rhs.f && *lhs.g == *rhs.g;
+bool operator==(s_comb_2 const& lhs,
+                s_comb_2 const& rhs) {
+    return lhs.f == rhs.f && lhs.g == rhs.g;
 }
 
 bool operator==(k_comb_0 const&, k_comb_0 const&) {
     return true;
 }
 
-bool operator==(k_comb_1 const& lhs, k_comb_1 const& rhs) {
-    return *lhs.x == *rhs.x;
+bool operator==(k_comb_1 const& lhs,
+                k_comb_1 const& rhs) {
+    return lhs.x == rhs.x;
 }
 
 bool operator==(i_comb_0 const&, i_comb_0 const&) {
     return true;
 }
 
-bool operator==(value const& lhs, value const& rhs) {
-    return lhs.impl == rhs.impl;
-}
-
-node_ptr to_ptr(node const& n) {
-    return std::make_shared<node>(n);
+bool operator==(node const& lhs, node const& rhs) {
+    return *lhs.ptr == *rhs.ptr;
 }
 
 }

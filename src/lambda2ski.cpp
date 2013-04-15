@@ -59,35 +59,35 @@ compile::operator()(lambda_ast::lambda const& lam) const {
     return boost::apply_visitor(remove_parameter(lam.param), lam.body);
 }
 
-struct to_ski : boost::static_visitor<ski::node_ptr> {
-    ski::node_ptr operator()(lambda_ast::variable const& var) const {
+struct to_ski : boost::static_visitor<ski::node> {
+    ski::node operator()(lambda_ast::variable const& var) const {
         if (var.name == "$S")
-            return make_value(ski::s_comb_0{});
+            return ski::s_comb_0{};
         if (var.name == "$K")
-            return make_value(ski::k_comb_0{});
+            return ski::k_comb_0{};
         if (var.name == "$I")
-            return make_value(ski::i_comb_0{});
-        return ski::make_value(ski::variable{var.name});
+            return ski::i_comb_0{};
+        return ski::variable{var.name};
     }
 
-    ski::node_ptr operator()(lambda_ast::lambda const&) const {
+    ski::node operator()(lambda_ast::lambda const&) const {
         throw std::runtime_error("unreduced lambda");
     }
 
-    ski::node_ptr operator()(lambda_ast::application const& app) const {
-        return ski::make_application(
+    ski::node operator()(lambda_ast::application const& app) const {
+        return ski::application{
             boost::apply_visitor(*this, app.f),
             boost::apply_visitor(*this, app.x)
-        );
+        };
     }
 };
 
-ski::node_ptr lambda2ski(lambda_ast::tree const& tree) {
+ski::node lambda2ski(lambda_ast::tree const& tree) {
     auto compiled = boost::apply_visitor(compile{}, tree);
     return boost::apply_visitor(to_ski{}, compiled);
 }
 
-ski::node_ptr string2ski(std::string const& s) {
+ski::node string2ski(std::string const& s) {
     return lambda2ski(parser::parse(s));
 }
 
