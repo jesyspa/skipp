@@ -61,12 +61,6 @@ compile::operator()(lambda_ast::lambda const& lam) const {
 
 struct to_ski : boost::static_visitor<ski::node> {
     ski::node operator()(lambda_ast::variable const& var) const {
-        if (var.name == "$S")
-            return ski::s_comb_0{};
-        if (var.name == "$K")
-            return ski::k_comb_0{};
-        if (var.name == "$I")
-            return ski::i_comb_0{};
         return ski::variable{var.name};
     }
 

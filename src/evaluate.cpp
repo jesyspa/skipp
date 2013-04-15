@@ -1,8 +1,9 @@
 #include "evaluate.hpp"
 #include "lambda2ski.hpp"
 #include <boost/optional.hpp>
+#include <iostream>
 #include <stdexcept>
-#include <stack>
+#include <vector>
 #include <string>
 #include <sstream>
 
@@ -10,66 +11,104 @@ namespace skipp {
 namespace evaluate {
 
 using result = boost::optional<ski::node>;
+using arg_vector = std::vector<ski::node>;
 
 bool can_evaluate(ski::node const& n);
 result do_evaluate(ski::node const& f, ski::node const& x);
 
-struct eval_one : boost::static_visitor<boost::optional<ski::node>> {
-    ski::node arg;
+ski::node extract(arg_vector& vec) {
+    auto result = vec.back();
+    vec.pop_back();
+    return result;
+}
 
-    eval_one(ski::node const& n) : arg(n) {}
+ski::application& get_app(ski::node& n) {
+    if (auto* p = n.get<ski::application>())
+        return *p;
+    else
+        throw std::logic_error("non-application in arg vector");
+}
 
-    result operator()(ski::variable const&) {
-        throw std::runtime_error("trying to evaluate variable");
-    }
-
-    result operator()(ski::application const& app) {
-        return do_evaluate(eval(app), arg);
-    }
-
-    result operator()(ski::s_comb_0 const&) {
-        return ski::node(ski::s_comb_1{arg});
-    }
-
-    result operator()(ski::s_comb_1 const& s) {
-        return ski::node(ski::s_comb_2{s.f, arg});
-    }
-
-    result operator()(ski::s_comb_2 const& s) {
-        return ski::node(ski::application{ski::application{s.f, arg},
-                                         ski::application{s.g, arg}});
-    }
-
-    result operator()(ski::k_comb_0 const&) {
-        return ski::node(ski::k_comb_1{arg});
-    }
-
-    result operator()(ski::k_comb_1 const& k) {
-        return k.x;
-    }
-
-    result operator()(ski::i_comb_0 const&) {
-        return arg;
-    }
-};
+ski::application const& get_app(ski::node const& n) {
+    if (auto* p = n.get<ski::application>())
+        return *p;
+    else
+        throw std::logic_error("non-application in arg vector");
+}
 
 bool can_evaluate(ski::node const& n) {
     return !n.get<ski::variable>();
 }
 
-result do_evaluate(ski::node const& f, ski::node const& x) {
-    if (!can_evaluate(f))
+result do_evaluate(ski::variable const& v, arg_vector& args) {
+    if (args.empty())
         return {};
-    return f.apply_visitor(eval_one{x});
+    if (v.name == "$I") {
+        return get_app(extract(args)).x;
+    }
+    if (v.name == "$K") {
+        if (args.size() < 2)
+            return {};
+        auto result = extract(args);
+        extract(args);
+        return get_app(result).x;
+    }
+    if (v.name == "$S") {
+        if (args.size() < 3)
+            return {};
+        auto f = extract(args);
+        auto g = extract(args);
+        auto base = extract(args);
+        auto& app = get_app(base);
+        auto x = app.x;
+        app.f = ski::application{get_app(f).x, x};
+        app.x = ski::application{get_app(g).x, x};
+        return base;
+    }
+    if (v.name == "print") {
+        auto base = extract(args);
+        auto& app = get_app(base);
+        std::cout << app.x << '\n';
+        app.f = ski::variable{"$I"};
+        app.x = ski::variable{"$I"};
+        return base;
+    }
+    return {};
+}
+
+
+std::ostream& operator<<(std::ostream& o, arg_vector const& v) {
+    bool b = false;
+    o << '{';
+    for (auto const& e : v) {
+        if (b)
+            o << ", ";
+        o << e;
+        b = true;
+    }
+    o << '}';
+    return o;
 }
 
 ski::node eval(ski::node n) {
-    while (auto* app = n.get<ski::application>()) {
-        if (auto result = do_evaluate(app->f, app->x))
+    arg_vector args;
+    while (true) {
+        while (auto* app = n.get<ski::application>()) {
+            args.push_back(n);
+            n = app->f;
+        }
+        // Seeing as it isn't an app, it's a variable
+        auto var = n.get<ski::variable>();
+        if (!var)
+            throw std::logic_error("neither app nor var");
+
+        if (auto result = do_evaluate(*var, args))
             n = *result;
         else
             break;
     }
+    while (!args.empty())
+        n = ski::application{n, get_app(extract(args)).x};
     return n;
 }
 
