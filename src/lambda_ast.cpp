@@ -11,6 +11,10 @@ struct print_tree : boost::static_visitor<> {
         o << v.name;
     }
 
+    void operator()(number const& n) const {
+        o << n.val;
+    }
+
     void operator()(lambda const& lam) const {
         o << "(\\" << lam.param << ". ";
         boost::apply_visitor(*this, lam.body);
@@ -33,6 +37,10 @@ std::ostream& operator<<(std::ostream& o, tree const& tr) {
 
 bool operator==(variable const& lhs, variable const& rhs) {
     return lhs.name == rhs.name;
+}
+
+bool operator==(number const& lhs, number const& rhs) {
+    return lhs.val == rhs.val;
 }
 
 bool operator==(lambda const& lhs, lambda const& rhs) {

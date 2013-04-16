@@ -10,17 +10,21 @@ namespace ski {
 
 extern int counter;
 
-struct application;
 struct variable {
     std::string name;
+};
+struct number {
+    int val;
 };
 struct combinator {
     char c;
 };
+struct application;
 
 namespace detail {
     using node_impl = boost::variant<
         variable,
+        number,
         combinator,
         application
     >;
@@ -39,6 +43,7 @@ public:
     node() = delete;
     node(detail::node_impl const& n);
     node(variable const&);
+    node(number const&);
     node(combinator const&);
     node(application const&);
     node(node const&) = default;
@@ -57,8 +62,6 @@ public:
 
     template<typename T>
     auto apply_visitor(T&& sv) const;
-
-    void update(node const&) const;
 };
 
 struct application {
@@ -82,6 +85,7 @@ auto node::apply_visitor(T&& sv) const {
 
 std::ostream& operator<<(std::ostream&, node const&);
 bool operator==(variable const&, variable const&);
+bool operator==(number const&, number const&);
 bool operator==(combinator const&, combinator const&);
 bool operator==(application const&, application const&);
 

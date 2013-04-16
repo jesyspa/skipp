@@ -33,6 +33,13 @@ namespace {
             throw std::logic_error("non-application in arg vector");
     }
 
+    ski::number const& get_num(ski::node const& n) {
+        auto val = eval(n);
+        if (auto p = val.get<ski::number>())
+            return *p;
+        throw std::runtime_error("type error in lhs");
+    }
+
     struct do_evaluate : boost::static_visitor<result> {
         arg_vector& args;
         do_evaluate(arg_vector& args) : args(args) {}
@@ -44,10 +51,50 @@ namespace {
                 auto base = extract(args);
                 auto& app = get_app(base);
                 std::cout << app.x << '\n';
-            app.f = ski::combinator{'I'};
-            app.x = ski::combinator{'I'};
-            return base;
+                app.f = ski::combinator{'I'};
+                app.x = ski::combinator{'I'};
+                return base;
             }
+            if (v.name == "+") {
+                auto lhs = extract(args);
+                auto rhs = extract(args);
+                auto lhs_num = get_num(get_app(lhs).x);
+                auto rhs_num = get_num(get_app(rhs).x);
+                auto& app = get_app(rhs);
+                app.f = ski::combinator{'I'};
+                app.x = ski::number{lhs_num.val + rhs_num.val};
+                return rhs;
+            }
+            if (v.name == "-") {
+                auto lhs = extract(args);
+                auto rhs = extract(args);
+                auto lhs_num = get_num(get_app(lhs).x);
+                auto rhs_num = get_num(get_app(rhs).x);
+                auto& app = get_app(rhs);
+                app.f = ski::combinator{'I'};
+                app.x = ski::number{lhs_num.val - rhs_num.val};
+                return rhs;
+            }
+            if (v.name == "<") {
+                auto lhs = extract(args);
+                auto rhs = extract(args);
+                auto lhs_num = get_num(get_app(lhs).x);
+                auto rhs_num = get_num(get_app(rhs).x);
+                auto& app = get_app(rhs);
+                if (lhs_num.val < rhs_num.val)
+                    app.f = ski::application{
+                        ski::combinator{'R'},
+                        ski::combinator{'K'}
+                    };
+                else
+                    app.f = ski::combinator{'K'};
+                app.x = ski::combinator{'I'};
+                return rhs;
+            }
+            return {};
+        }
+
+        result operator()(ski::number const&) const {
             return {};
         }
 

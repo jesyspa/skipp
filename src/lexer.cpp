@@ -1,10 +1,11 @@
 #include "lexer.hpp"
 #include <cctype>
 #include <iostream>
+#define FUSION_MAX_VECTOR_SIZE 30
+#include <boost/mpl/vector.hpp>
 #include <boost/msm/front/states.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <boost/msm/back/state_machine.hpp>
-#include <boost/mpl/vector.hpp>
 
 namespace {
     namespace msm = boost::msm;
@@ -12,6 +13,7 @@ namespace {
     using namespace skipp::token;
 
     struct letter { char c; };
+    struct digit { char c; };
     struct whitespace {};
 
     struct empty : msm::front::state<> {};
@@ -32,6 +34,24 @@ namespace {
         template<typename FSM>
         void on_exit(letter const&, FSM&) {}
     };
+    struct in_number : msm::front::state<> {
+        int val = 0;
+
+        template<typename FSM>
+        void on_entry(digit const& sl, FSM&) {
+            val *= 10;
+            val += sl.c-'0';
+        }
+
+        template<typename EVENT, typename FSM>
+        void on_exit(EVENT const&, FSM& fsm) {
+            fsm.emit(number{val});
+            val = 0;
+        }
+
+        template<typename FSM>
+        void on_exit(digit const&, FSM&) {}
+    };
 
     struct lexer_ : msm::front::state_machine_def<lexer_> {
         tokens result;
@@ -43,25 +63,24 @@ namespace {
             emit(eof{});
         }
 
-        template<typename T>
-        void emit(T const& tok) {
+        void emit(token const& tok) {
             result.push_back(tok);
         }
 
         using m = lexer_;
         struct transition_table : mpl::vector<
-            a_row<empty,       dot,         empty,        &m::emit>,
-            a_row<empty,       lambda,      empty,        &m::emit>,
-            a_row<empty,       open_paren,  empty,        &m::emit>,
-            a_row<empty,       close_paren, empty,        &m::emit>,
             _row <empty,       letter,      in_variable>,
+            _row <empty,       digit,       in_number>,
             _row <empty,       whitespace,  empty>,
+            a_row<empty,       token,      empty,        &m::emit>,
             _row <in_variable, letter,      in_variable>,
-            a_row<in_variable, dot,         empty,        &m::emit>,
-            a_row<in_variable, lambda,      empty,        &m::emit>,
-            a_row<in_variable, open_paren,  empty,        &m::emit>,
-            a_row<in_variable, close_paren, empty,        &m::emit>,
-            _row <in_variable, whitespace,  empty>
+            _row <in_variable, digit,       in_number>,
+            _row <in_variable, whitespace,  empty>,
+            a_row<in_variable, token,      empty,        &m::emit>,
+            _row <in_number,   digit,       in_number>,
+            _row <in_number,   letter,      in_variable>,
+            _row <in_number,   whitespace,  empty>,
+            a_row<in_number,   token,       empty,       &m::emit>
         > {};
     };
 
@@ -71,19 +90,22 @@ namespace {
 namespace skipp {
 
 token::tokens lex(std::string const& s) {
-    ::lexer lexer;
+    lexer lexer;
+    using token::token;
     lexer.start();
     for (char c : s) {
         if (c == '.')
-            lexer.process_event(dot{});
+            lexer.process_event(token(dot{}));
         else if (c == '\\')
-            lexer.process_event(lambda{});
+            lexer.process_event(token(lambda{}));
         else if (c == '(')
-            lexer.process_event(open_paren{});
+            lexer.process_event(token(open_paren{}));
         else if (c == ')')
-            lexer.process_event(close_paren{});
+            lexer.process_event(token(close_paren{}));
         else if (std::isspace(c))
             lexer.process_event(whitespace{});
+        else if (std::isdigit(c))
+            lexer.process_event(digit{c});
         else
             lexer.process_event(letter{c});
 

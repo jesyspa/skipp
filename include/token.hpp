@@ -16,6 +16,9 @@ struct close_paren {};
 struct variable {
     std::string name;
 };
+struct number {
+    int val;
+};
 
 #define MAKE_OPERATORS(type)\
     inline std::ostream& operator<<(std::ostream& o, type const&) {\
@@ -37,30 +40,18 @@ MAKE_OPERATORS(close_paren)
 
 std::ostream& operator<<(std::ostream&, variable const&);
 bool operator==(variable const&, variable const&);
+std::ostream& operator<<(std::ostream&, number const&);
+bool operator==(number const&, number const&);
 
 using token = boost::variant<eof, lambda, dot, open_paren,
-                             close_paren, variable>;
+                             close_paren, variable, number>;
 using tokens = std::vector<token>;
 
 bool operator!=(token const& lhs, token const& rhs);
 
-namespace detail {
-    template<typename T>
-    struct is_impl : boost::static_visitor<bool> {
-        bool operator()(T const&) const {
-            return true;
-        }
-
-        template<typename U>
-        bool operator()(U const&) const {
-            return false;
-        }
-    };
-}
-
 template<typename T>
 bool is(token const& tk) {
-    return boost::apply_visitor(detail::is_impl<T>{}, tk);
+    return boost::get<T>(&tk);
 }
 
 } // token

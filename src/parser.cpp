@@ -21,6 +21,7 @@ T const& expect(iter& it, std::string const& error) {
 
 tree parse_atom(iter& it);
 tree parse_variable(iter& it);
+tree parse_number(iter& it);
 tree parse_lambda(iter& it);
 tree parse_parentheses(iter& it);
 tree parse_expr(iter& it);
@@ -30,6 +31,8 @@ tree parse_atom(iter& it) {
         throw std::runtime_error("expecting atom, got eof");
     if (token::is<token::variable>(*it))
         return parse_variable(it);
+    if (token::is<token::number>(*it))
+        return parse_number(it);
     if (token::is<token::lambda>(*it))
         return parse_lambda(it);
     if (token::is<token::open_paren>(*it))
@@ -40,6 +43,11 @@ tree parse_atom(iter& it) {
 tree parse_variable(iter& it) {
     auto& v = expect<token::variable>(it, "expected variable");
     return lambda_ast::variable{v.name};
+}
+
+tree parse_number(iter& it) {
+    auto& n = expect<token::number>(it, "expected number");
+    return lambda_ast::number{n.val};
 }
 
 tree parse_lambda(iter& it) {

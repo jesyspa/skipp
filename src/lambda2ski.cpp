@@ -15,6 +15,10 @@ struct used_variables : boost::static_visitor<std::set<std::string>> {
         return {var.name};
     }
 
+    result operator()(lambda_ast::number const&) const {
+        return {};
+    }
+
     result operator()(lambda_ast::application const& app) const {
         auto f = boost::apply_visitor(*this, app.f);
         auto x = boost::apply_visitor(*this, app.x);
@@ -36,6 +40,10 @@ struct compile : boost::static_visitor<lambda_ast::tree> {
         return var;
     }
 
+    lambda_ast::tree operator()(lambda_ast::number const& num) const {
+        return num;
+    }
+
     lambda_ast::tree operator()(lambda_ast::application const& app) const {
         return lambda_ast::application{
             boost::apply_visitor(*this, app.f),
@@ -55,7 +63,14 @@ struct remove_parameter : boost::static_visitor<lambda_ast::tree> {
             return lambda_ast::variable{"$I"};
         return lambda_ast::application{
             lambda_ast::variable{"$K"},
-            lambda_ast::variable{var.name}
+            var
+        };
+    }
+
+    lambda_ast::tree operator()(lambda_ast::number const& num) const {
+        return lambda_ast::application{
+            lambda_ast::variable{"$K"},
+            num
         };
     }
 
@@ -71,7 +86,7 @@ struct remove_parameter : boost::static_visitor<lambda_ast::tree> {
     vars_helper(bool has, lambda_ast::tree const& tree) const {
         if (has)
             return boost::apply_visitor(*this, tree);
-        return tree;
+        return boost::apply_visitor(compile{}, tree);
     }
 
     bool has_helper(lambda_ast::tree const& tree) const {
@@ -109,6 +124,10 @@ struct to_ski : boost::static_visitor<ski::node> {
         if (var.name[0] == '$')
             return ski::combinator{var.name.at(1)};
         return ski::variable{var.name};
+    }
+
+    ski::node operator()(lambda_ast::number const& num) const {
+        return ski::number{num.val};
     }
 
     ski::node operator()(lambda_ast::lambda const&) const {
