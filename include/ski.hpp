@@ -53,15 +53,14 @@ public:
     node& operator=(node&&) = default;
 
     template<typename T>
-    T* get();
-
-    template<typename T>
-    T const* get() const;
+    T* get() const;
 
     friend bool operator==(node const&, node const&);
 
     template<typename T>
     auto apply_visitor(T&& sv) const;
+
+    node update(node const&) const;
 };
 
 struct application {
@@ -69,13 +68,8 @@ struct application {
 };
 
 template<typename T>
-T* node::get() {
+T* node::get() const {
     return boost::get<T>(ptr.get());
-}
-
-template<typename T>
-T const* node::get() const {
-    return boost::get<T const>(ptr.get());
 }
 
 template<typename T>

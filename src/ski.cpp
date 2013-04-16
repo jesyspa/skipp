@@ -8,7 +8,6 @@ struct print_ski : boost::static_visitor<> {
     print_ski(std::ostream& o) : o(o) {}
     std::ostream& o;
 
-
     void operator()(variable const& var) const {
         o << var.name;
     }
@@ -35,6 +34,11 @@ node::node(variable const& n) : node(impl(n)) {}
 node::node(number const& n) : node(impl(n)) {}
 node::node(combinator const& n) : node(impl(n)) {}
 node::node(application const& n) : node(impl(n)) {}
+
+node node::update(node const& n) const {
+    *ptr = *n.ptr;
+    return *this;
+}
 
 std::ostream& operator<<(std::ostream& o, node const& n) {
     n.apply_visitor(print_ski{o});
