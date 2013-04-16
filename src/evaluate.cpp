@@ -38,18 +38,19 @@ namespace {
         return result;
     }
 
-    ski::application& get_app(ski::node& n) {
+    ski::application& get_app(ski::node const& n) {
         if (auto* p = n.get<ski::application>())
             return *p;
         else
             throw std::logic_error("non-application in arg vector");
     }
 
-    ski::application const& get_app(ski::node const& n) {
-        if (auto* p = n.get<ski::application>())
-            return *p;
-        else
-            throw std::logic_error("non-application in arg vector");
+    ski::node& get_fun(ski::node const& n) {
+        return get_app(n).f;
+    }
+
+    ski::node& get_arg(ski::node const& n) {
+        return get_app(n).x;
     }
 
     ski::number const& get_num(ski::node const& n) {
@@ -68,16 +69,15 @@ namespace {
                 return {};
             if (v.name == "print") {
                 auto base = extract(args);
-                std::cout << get_app(base).x << '\n';
-                return ski::node{ski::application{
-                    ski::combinator{'I'},
-                    ski::combinator{'I'}}};
+                std::cout << get_arg(base) << '\n';
+                return ski::node{
+                    ski::combinator{'I'}};
             }
             if (v.name == "+") {
                 auto lhs = extract(args);
                 auto rhs = extract(args);
-                auto lhs_num = get_num(get_app(lhs).x);
-                auto rhs_num = get_num(get_app(rhs).x);
+                auto lhs_num = get_num(get_arg(lhs));
+                auto rhs_num = get_num(get_arg(rhs));
                 return ski::node{
                     ski::application{
                         ski::combinator{'I'},
@@ -86,8 +86,8 @@ namespace {
             if (v.name == "-") {
                 auto lhs = extract(args);
                 auto rhs = extract(args);
-                auto lhs_num = get_num(get_app(lhs).x);
-                auto rhs_num = get_num(get_app(rhs).x);
+                auto lhs_num = get_num(get_arg(lhs));
+                auto rhs_num = get_num(get_arg(rhs));
                 return ski::node{
                     ski::application{
                         ski::combinator{'I'},
@@ -96,8 +96,8 @@ namespace {
             if (v.name == "<") {
                 auto lhs = extract(args);
                 auto rhs = extract(args);
-                auto lhs_num = get_num(get_app(lhs).x);
-                auto rhs_num = get_num(get_app(rhs).x);
+                auto lhs_num = get_num(get_arg(lhs));
+                auto rhs_num = get_num(get_arg(rhs));
                 if (lhs_num.val < rhs_num.val)
                     return ski::node{
                         ski::application{
@@ -123,14 +123,14 @@ namespace {
                 return {};
             switch (comb.c) {
             case 'I':
-                return get_app(extract(args)).x;
+                return get_arg(extract(args));
 
             case 'K': {
                 if (args.size() < 2)
                     return {};
                 auto result = extract(args);
                 extract(args);
-                return get_app(result).x;
+                return get_arg(result);
             }
 
             case 'R': {
@@ -141,10 +141,10 @@ namespace {
                 auto x = extract(args);
                 return ski::node{
                     ski::application{
-                        get_app(f).x,
+                        get_arg(f),
                         ski::application{
-                            get_app(g).x,
-                            get_app(x).x}}};
+                            get_arg(g),
+                            get_arg(x)}}};
             }
 
             case 'L': {
@@ -156,9 +156,9 @@ namespace {
                 return ski::node{
                     ski::application{
                         ski::application{
-                            get_app(f).x,
-                            get_app(x).x},
-                        get_app(g).x}};
+                            get_arg(f),
+                            get_arg(x)},
+                        get_arg(g)}};
             }
 
             case 'S': {
@@ -170,11 +170,11 @@ namespace {
                 return ski::node{
                     ski::application{
                         ski::application{
-                            get_app(f).x,
-                            get_app(x).x},
+                            get_arg(f),
+                            get_arg(x)},
                         ski::application{
-                            get_app(g).x,
-                            get_app(x).x}}};
+                            get_arg(g),
+                            get_arg(x)}}};
             }
 
             default:
@@ -200,6 +200,7 @@ ski::node eval(ski::node const& n_orig) {
     arg_vector args;
     auto n = n_orig;
     while (true) {
+        warn(n_orig);
         while (auto* app = n.get<ski::application>()) {
             args.push_back(n);
             warn("back:", args.back());
@@ -214,12 +215,16 @@ ski::node eval(ski::node const& n_orig) {
         if (args.empty())
             n = n_orig.update(*result);
         else if (id)
-            n = get_app(args.back()).f = *result;
+            n = get_fun(args.back()) = *result;
+        else if (result->get<ski::application>())
+            n = get_fun(args.back()).update(*result);
         else
-            n = get_app(args.back()).f.update(*result);
+            n = get_fun(args.back()).update(ski::application{
+                    ski::combinator{'I'},
+                    *result});
     }
     while (!args.empty())
-        n = ski::application{n, get_app(extract(args)).x};
+        n = ski::application{n, get_arg(extract(args))};
     return n;
 }
 
