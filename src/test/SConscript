@@ -1,0 +1,13 @@
+Import('flags')
+Import('env')
+Import('prefix')
+
+libname = "".join(['-l', prefix, 'skipp'])
+progname = "".join(["#bin/", prefix, "test"])
+
+test_sources = Glob("*.cpp")
+
+test_env = env.Clone()
+test_env.MergeFlags([flags['test'], libname, '-DBOOST_TEST_DYN_LINK'])
+test_env.Program(progname, test_sources)
+

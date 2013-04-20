@@ -49,9 +49,9 @@ SConscript("src/SConscript", exports=rel_exports, variant_dir='.relbuild')
 Command('doc/.create', 'Doxyfile', 'doxygen')
 
 Alias('dbg', '#bin/dbgskipp')
-Alias('test', '#dbgtest')
+Alias('test', '#bin/dbgtest')
 Alias('release', '#bin/skipp')
-Alias('reltest', '#test')
+Alias('reltest', '#bin/test')
 Alias('doc', 'doc/.create')
 
 Default('test')

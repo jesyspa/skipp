@@ -4,10 +4,6 @@ lib/
 .dbgbuild/
 .relbuild/
 
-# Compiled programs
-test
-dbgtest
-
 # Compiled Object files
 *.slo
 *.lo

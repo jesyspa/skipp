@@ -73,7 +73,7 @@ namespace {
                 return ski::node{
                     ski::combinator{'I'}};
             }
-            if (v.name == "+") {
+            if (v.name == "+" || v.name == "add") {
                 auto lhs = extract(args);
                 auto rhs = extract(args);
                 auto lhs_num = get_num(get_arg(lhs));
@@ -83,7 +83,7 @@ namespace {
                         ski::combinator{'I'},
                         ski::number{lhs_num.val + rhs_num.val}}};
             }
-            if (v.name == "-") {
+            if (v.name == "-" || v.name == "sub") {
                 auto lhs = extract(args);
                 auto rhs = extract(args);
                 auto lhs_num = get_num(get_arg(lhs));
@@ -93,7 +93,7 @@ namespace {
                         ski::combinator{'I'},
                         ski::number{lhs_num.val - rhs_num.val}}};
             }
-            if (v.name == "<") {
+            if (v.name == "<=" || v.name == "le") {
                 auto lhs = extract(args);
                 auto rhs = extract(args);
                 auto lhs_num = get_num(get_arg(lhs));
